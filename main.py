@@ -1,6 +1,7 @@
 # main.py
 import asyncio
 from pathlib import Path
+from typing import Any, Dict
 
 from fastapi import Request
 from fastapi.responses import HTMLResponse
@@ -29,28 +30,23 @@ async def setup_app_and_server():
     Initializes and sets up the application and its FastAPI server.
     """
     try:
-        # Initialize the application using the BaseApplication class
         application = BaseApplication(name=APPLICATION_NAME)
 
-        # Mount static files (CSS, JS)
         application.server.mount(
             "/static", StaticFiles(directory=STATIC_PATH), name="static"
         )
 
-        # Define your API endpoint to serve the frontend
         @application.server.get("/", response_class=HTMLResponse)
         async def read_root(request: Request):
             return templates.TemplateResponse("index.html", {"request": request})
 
-        # Define an API endpoint to start the workflow
         @application.server.post("/api/start_extraction")
-        async def start_extraction(username: str, credential_guid: str):
+        async def start_extraction(username: str, pat: str):
             workflow_config = {
                 "username": username,
-                "credential_guid": credential_guid
+                "pat": pat
             }
             try:
-                # Use the built-in `start_workflow` utility to trigger the workflow
                 workflow_run = await application.start_workflow(
                     workflow_class=GitHubWorkflow,
                     workflow_id=f"github_extraction_{username}",
@@ -61,14 +57,11 @@ async def setup_app_and_server():
                 logger.error(f"Failed to start workflow: {e}")
                 return {"status": "failed", "error": str(e)}
 
-        # Setup and start the worker
-        # This will use the GitHubWorkflow and GitHubActivities classes defined in your app directory
         await application.setup_workflow(
             workflow_and_activities_classes=[(GitHubWorkflow, GitHubActivities)]
         )
         await application.start_worker()
 
-        # Setup and start the server
         await application.setup_server(workflow_class=GitHubWorkflow)
         await application.start_server()
 
