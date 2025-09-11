@@ -1,5 +1,4 @@
 # app/activities.py
-
 from typing import Any, Dict, List, Optional
 from application_sdk.activities import ActivitiesInterface
 from application_sdk.activities.common.models import ActivityStatistics
@@ -9,7 +8,6 @@ from application_sdk.observability.decorators.observability_decorator import obs
 from application_sdk.observability.logger_adaptor import get_logger
 from application_sdk.observability.metrics_adaptor import get_metrics
 from application_sdk.observability.traces_adaptor import get_traces
-from application_sdk.services.secretstore import SecretStore
 from temporalio import activity
 
 from app.clients import GitHubClient
@@ -27,9 +25,12 @@ class GitHubActivities(ActivitiesInterface):
     @activity.defn
     @auto_heartbeater
     async def preflight_check(self, workflow_args: Dict[str, Any]) -> Optional[ActivityStatistics]:
-        """Performs a preflight check, including credential validation."""
+        """Performs a preflight check using the provided PAT."""
         try:
-            client = GitHubClient(token_secret_key=workflow_args.get("credential_guid"))
+            pat = workflow_args.get("pat")
+            if not pat:
+                raise ValueError("Personal Access Token (PAT) is missing.")
+            client = GitHubClient(pat=pat)
             await client.get_user_metadata(username=workflow_args["username"])
             logger.info("Preflight check passed successfully.")
             return None
@@ -42,12 +43,12 @@ class GitHubActivities(ActivitiesInterface):
     @auto_heartbeater
     async def fetch_user_metadata_activity(self, workflow_args: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Fetches metadata for a GitHub user or organization.
+        Fetches metadata for a GitHub user or organization using the provided PAT.
         
-        :param workflow_args: The workflow arguments, including the GitHub username.
+        :param workflow_args: The workflow arguments, including the GitHub username and PAT.
         :return: A dictionary containing the user's metadata.
         """
-        client = GitHubClient(token_secret_key=workflow_args.get("credential_guid"))
+        client = GitHubClient(pat=workflow_args.get("pat"))
         return await client.get_user_metadata(username=workflow_args["username"])
 
     @observability(logger=logger, metrics=metrics, traces=traces)
@@ -57,10 +58,10 @@ class GitHubActivities(ActivitiesInterface):
         """
         Fetches metadata for all public repositories of a user or organization.
         
-        :param workflow_args: The workflow arguments, including the GitHub username.
+        :param workflow_args: The workflow arguments, including the GitHub username and PAT.
         :return: A list of dictionaries, each containing a repository's metadata.
         """
-        client = GitHubClient(token_secret_key=workflow_args.get("credential_guid"))
+        client = GitHubClient(pat=workflow_args.get("pat"))
         return await client.get_repositories_metadata(username=workflow_args["username"])
 
     @observability(logger=logger, metrics=metrics, traces=traces)
@@ -74,8 +75,6 @@ class GitHubActivities(ActivitiesInterface):
         :param raw_data: A dictionary containing raw 'user_data' and 'repo_data'.
         :return: A list of transformed Atlan assets.
         """
-        # This is where you would get the connection name and qualified name from the workflow config
-        # For this example, we'll use placeholder values
         connection_name = "GitHub API"
         connection_qualified_name = "default/github/user_example"
 

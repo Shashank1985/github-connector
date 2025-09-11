@@ -1,10 +1,10 @@
+# app/clients.py
 import httpx
 from typing import Any, Dict, Optional
 import time
 
 from application_sdk.clients.base import BaseClient
 from application_sdk.observability.logger_adaptor import get_logger
-from application_sdk.services.secretstore import SecretStore
 
 logger = get_logger(__name__)
 
@@ -16,15 +16,15 @@ class GitHubClient(BaseClient):
     user and repository information.
     """
 
-    def __init__(self, token_secret_key: Optional[str] = None):
+    def __init__(self, pat: Optional[str] = None):
         """
-        Initializes the GitHub client.
+        Initializes the GitHub client with a raw PAT.
         
         Args:
-            token_secret_key: The key to retrieve the GitHub Personal Access Token from the SecretStore.
+            pat: The GitHub Personal Access Token.
         """
         super().__init__()
-        self.token_secret_key = token_secret_key
+        self.pat = pat
         self.client: Optional[httpx.AsyncClient] = None
 
     async def _get_client(self) -> httpx.AsyncClient:
@@ -33,27 +33,20 @@ class GitHubClient(BaseClient):
         """
         if self.client is None:
             headers = {}
-            if self.token_secret_key:
-                # Retrieve the GitHub token securely from the SecretStore
-                try:
-                    credentials = await SecretStore.get_credentials(self.token_secret_key)
-                    token = credentials.get("token")  # Assuming the key in secret is 'token'
-                    headers["Authorization"] = f"token {token}"
-                    logger.info("Successfully retrieved GitHub token from SecretStore.")
-                except Exception as e:
-                    logger.error(f"Failed to retrieve GitHub token from SecretStore: {e}")
-                    raise RuntimeError("Failed to retrieve GitHub credentials.")
-
+            if self.pat:
+                headers["Authorization"] = f"token {self.pat}"
+                logger.info("Using PAT for GitHub API authentication.")
+            
             self.client = httpx.AsyncClient(headers=headers, base_url="https://api.github.com")
 
         return self.client
 
     async def get_user_metadata(self, username: str) -> Dict[str, Any]:
         """
-        Fetches metadata for a given GitHub user or organization.
+        Fetches metadata for a given GitHub user or organization, with fallback values.
 
         :param username: The GitHub username or organization name.
-        :return: A dictionary containing the user's metadata.
+        :return: A dictionary containing the user's metadata with default values for missing data.
         """
         client = await self._get_client()
         url = f"/users/{username}"
@@ -62,12 +55,12 @@ class GitHubClient(BaseClient):
             response.raise_for_status()
             user_data = response.json()
             return {
-                "name": user_data.get("name") or user_data.get("login"),
-                "profile_url": user_data.get("html_url"),
-                "bio": user_data.get("bio"),
-                "followers": user_data.get("followers"),
-                "following": user_data.get("following"),
-                "repository_count": user_data.get("public_repos"),
+                "name": user_data.get("name") or user_data.get("login") or "N/A",
+                "profile_url": user_data.get("html_url") or "N/A",
+                "bio": user_data.get("bio") or "No bio provided.",
+                "followers": user_data.get("followers", 0),
+                "following": user_data.get("following", 0),
+                "repository_count": user_data.get("public_repos", 0),
             }
         except httpx.HTTPStatusError as e:
             logger.error(f"HTTP error fetching user data for {username}: {e.response.status_code} - {e.response.text}")
