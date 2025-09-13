@@ -675,6 +675,9 @@ dependencies = [
     { name = "pandas" },
     { name = "poethepoet" },
     { name = "pyatlan" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
     { name = "temporalio" },
     { name = "yake" },
 ]
@@ -695,6 +698,9 @@ requires-dist = [
     { name = "pandas" },
     { name = "poethepoet" },
     { name = "pyatlan" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.1.1" },
+    { name = "pytest-mock", specifier = ">=3.15.0" },
     { name = "temporalio" },
     { name = "yake", specifier = ">=0.6.0" },
 ]
@@ -1941,6 +1947,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8d/1e/2aa43805d4a320a9489d2b99f7877b69f9094c79aa0732159a1415dd6cd4/pytest_asyncio-1.1.1.tar.gz", hash = "sha256:b72d215c38e2c91dbb32f275e0b5be69602d7869910e109360e375129960a649", size = 46590, upload-time = "2025-09-12T06:36:20.834Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/28/de/aba79e9ccdb51b5d0d65c67dd857bd78b00c64723df16b9fc800d8b94ce6/pytest_asyncio-1.1.1-py3-none-any.whl", hash = "sha256:726339d30fcfde24691f589445b9b67d058b311ac632b1d704e97f20f1d878da", size = 14719, upload-time = "2025-09-12T06:36:19.726Z" },
+]
+
+[[package]]
+name = "pytest-mock"
+version = "3.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/61/99/3323ee5c16b3637b4d941c362182d3e749c11e400bea31018c42219f3a98/pytest_mock-3.15.0.tar.gz", hash = "sha256:ab896bd190316b9d5d87b277569dfcdf718b2d049a2ccff5f7aca279c002a1cf", size = 33838, upload-time = "2025-09-04T20:57:48.679Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/2b/b3/7fefc43fb706380144bcd293cc6e446e6f637ddfa8b83f48d1734156b529/pytest_mock-3.15.0-py3-none-any.whl", hash = "sha256:ef2219485fb1bd256b00e7ad7466ce26729b30eadfc7cbcdb4fa9a92ca68db6f", size = 10050, upload-time = "2025-09-04T20:57:47.274Z" },
 ]
 
 [[package]]
