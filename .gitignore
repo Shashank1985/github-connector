@@ -9,3 +9,5 @@ __pycache__/
 .env
 github_repo_metadata.json
 github_user_metadata.json
+github_quality_metrics.json
+github_repo_metadata_with_tags.json
