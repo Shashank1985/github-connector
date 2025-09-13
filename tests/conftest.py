@@ -1,4 +1,3 @@
-# tests/conftest.py
 import pytest
 import os
 from unittest.mock import patch, MagicMock, AsyncMock
@@ -7,6 +6,8 @@ from temporalio.worker import Worker
 from app.activities import GitHubActivities
 from app.workflow import GitHubWorkflow
 import yake
+import pytest_asyncio
+
 
 @pytest.fixture(autouse=True)
 def mock_env_vars():
@@ -31,10 +32,11 @@ def mock_yake_extractor():
         instance.extract_keywords.return_value = [("python project", 0.1), ("cool code", 0.2)]
         yield instance
 
-@pytest.fixture(scope="module")
+@pytest_asyncio.fixture(scope="module")
 async def temporal_client():
     """Provides a mocked Temporal client for workflow testing."""
-    async with WorkflowEnvironment.start_time_skipping() as env:
+    env = await WorkflowEnvironment.start_time_skipping()
+    async with env:
         worker = Worker(
             env.client,
             task_queue="github_extractor_task_queue",
