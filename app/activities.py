@@ -11,6 +11,7 @@ from application_sdk.observability.traces_adaptor import get_traces
 from temporalio import activity
 
 from app.clients import GitHubClient
+import json
 import os
 
 logger = get_logger(__name__)
@@ -49,7 +50,13 @@ class GitHubActivities(ActivitiesInterface):
         :return: A dictionary containing the user's metadata.
         """
         client = GitHubClient(pat=pat)
-        return await client.get_user_metadata(username=username)
+        user_metadata= await client.get_user_metadata(username=username)
+        output_file = "github_user_metadata.json"
+        with open(output_file, "w") as f:
+            json.dump(user_metadata, f, indent=4)
+        
+        print(f"Successfully extracted metadata for '{username}' and saved it to '{output_file}'.")
+    
 
     @observability(logger=logger, metrics=metrics, traces=traces)
     @activity.defn
@@ -62,4 +69,10 @@ class GitHubActivities(ActivitiesInterface):
         :return: A list of dictionaries, each containing a repository's metadata.
         """
         client = GitHubClient(pat=pat)
-        return await client.get_repositories_metadata(username=username)
+        repository_metadata = await client.get_repositories_metadata(username=username)
+        output_file = "github_repo_metadata.json"
+        with open(output_file, "w") as f:
+            json.dump(repository_metadata, f, indent=4)
+        
+        print(f"Successfully extracted metadata for '{username}' and saved it to '{output_file}'.")
+    
