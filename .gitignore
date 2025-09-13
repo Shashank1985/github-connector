@@ -7,3 +7,5 @@ __pycache__/
 */__pycache__/
 *.pyc
 .env
+github_repo_metadata.json
+github_user_metadata.json
