@@ -7,7 +7,6 @@ from application_sdk.observability.decorators.observability_decorator import obs
 from application_sdk.observability.logger_adaptor import get_logger
 from application_sdk.observability.metrics_adaptor import get_metrics
 from application_sdk.observability.traces_adaptor import get_traces
-from application_sdk.workflows.metadata_extraction.sql import BaseSQLMetadataExtractionWorkflow
 from temporalio import workflow
 from temporalio.common import RetryPolicy
 
@@ -64,7 +63,20 @@ class GitHubWorkflow:
 
         user_metadata, repo_metadata = await asyncio.gather(user_metadata_task, repo_metadata_task)
         raw_data = {"user_data": user_metadata, "repo_data": repo_metadata}
-
+        
+        # 3. Process the fetched data for simple quality metrics and automated tagging.
+        await workflow.execute_activity_method(
+            activities_instance.extract_keywords_activity,
+            repo_metadata,
+            retry_policy=retry_policy,
+            start_to_close_timeout=timedelta(seconds=60),
+        )
+        await workflow.execute_activity_method(
+            activities_instance.fetch_data_quality_metrics_activity,
+            raw_data,
+            retry_policy=retry_policy,
+            start_to_close_timeout=timedelta(seconds=60),
+        )
 
     @staticmethod
     def get_activities(activities: GitHubActivities) -> List[Callable[..., Any]]:
@@ -75,5 +87,6 @@ class GitHubWorkflow:
             activities.preflight_check,
             activities.fetch_user_metadata_activity,
             activities.fetch_repositories_metadata_activity,
-            
+            activities.fetch_data_quality_metrics_activity,
+            activities.extract_keywords_activity,
         ]

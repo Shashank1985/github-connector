@@ -9,7 +9,7 @@ from application_sdk.observability.logger_adaptor import get_logger
 from application_sdk.observability.metrics_adaptor import get_metrics
 from application_sdk.observability.traces_adaptor import get_traces
 from temporalio import activity
-
+import yake
 from app.clients import GitHubClient
 import json
 import os
@@ -56,7 +56,7 @@ class GitHubActivities(ActivitiesInterface):
             json.dump(user_metadata, f, indent=4)
         
         print(f"Successfully extracted metadata for '{username}' and saved it to '{output_file}'.")
-    
+        return user_metadata
 
     @observability(logger=logger, metrics=metrics, traces=traces)
     @activity.defn
@@ -75,4 +75,60 @@ class GitHubActivities(ActivitiesInterface):
             json.dump(repository_metadata, f, indent=4)
         
         print(f"Successfully extracted metadata for '{username}' and saved it to '{output_file}'.")
+        return repository_metadata
     
+    @observability(logger=logger, metrics=metrics, traces=traces)
+    @activity.defn
+    @auto_heartbeater
+    async def extract_keywords_activity(self, repo_metadata: list[Dict[str, Any]]) -> list[Dict[str, Any]]:
+        """
+        Extracts keywords from repository descriptions and adds them as tags.
+        
+        :param repo_metadata: A list of dictionaries, each containing a repository's metadata.
+        :return: The updated list of dictionaries with added keyword tags.
+        """
+        kw_extractor = yake.KeywordExtractor(top=5) # Initialize YAKE with a limit of 5 keywords
+        for repo in repo_metadata:
+            description = repo.get("description")
+            if description:
+                keywords = [kw[0] for kw in kw_extractor.extract_keywords(description)]
+                repo["auto_tags"] = keywords
+            else:
+                repo["auto_tags"] = []
+
+        output_file = "github_repo_metadata_with_tags.json"
+        with open(output_file, "w") as f:
+            json.dump(repo_metadata, f, indent=4)
+        
+        logger.info(f"Successfully extracted keywords and saved the updated metadata to '{output_file}'.")
+        return repo_metadata
+    
+    @observability(logger=logger, metrics=metrics, traces=traces)
+    @activity.defn
+    @auto_heartbeater
+    async def fetch_data_quality_metrics_activity(self, raw_data) -> Dict[str, Any]:
+        """
+        Calculates data quality metrics from the extracted metadata.
+        
+        :param raw_data: A dictionary containing 'user_data' and 'repo_data'.
+        :return: A dictionary containing the calculated data quality metrics.
+        """
+        user_metadata = raw_data.get("user_data", {})
+        repo_metadata = raw_data.get("repo_data", [])
+
+        # Calculate metrics
+        quality_metrics = {
+            "total_public_repos": len(repo_metadata),
+            "total_followers": user_metadata.get("followers", 0),
+            "total_following": user_metadata.get("following", 0),
+            "average_stars_per_repo": sum(repo.get("star_count", 0) for repo in repo_metadata) / len(repo_metadata) if repo_metadata else 0,
+            "total_public_gists": user_metadata.get("public_gists", 0),
+            "repos_with_description_percentage": (sum(1 for repo in repo_metadata if repo.get("description")) / len(repo_metadata)) * 100 if repo_metadata else 0,
+        }
+
+        output_file = "github_quality_metrics.json"
+        with open(output_file, "w") as f:
+            json.dump(quality_metrics, f, indent=4)
+
+        logger.info("Successfully calculated data quality metrics and saved them to '%s'.", output_file)
+        return quality_metrics
