@@ -1,73 +1,66 @@
-# main.py
 import asyncio
-from pathlib import Path
-from typing import Any, Dict
-
-from fastapi import Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-
-from application_sdk.application import BaseApplication
-from application_sdk.common.error_codes import ApiError
-from application_sdk.observability.logger_adaptor import get_logger
+import os
+from dotenv import load_dotenv
 
 from app.activities import GitHubActivities
 from app.workflow import GitHubWorkflow
+from application_sdk.application import BaseApplication
+from application_sdk.observability.logger_adaptor import get_logger
 
-APPLICATION_NAME = "github-connector"
+APPLICATION_NAME = "github_extractor"
 
 logger = get_logger(__name__)
 
-TEMPLATES_PATH = Path(__file__).parent / "frontend" / "templates"
-STATIC_PATH = Path(__file__).parent / "frontend" / "static"
-
-templates = Jinja2Templates(directory=TEMPLATES_PATH)
-
-
-async def setup_app_and_server():
+async def main(daemon: bool = True):
     """
-    Initializes and sets up the application and its FastAPI server.
+    Main function to run the GitHub extractor application.
+    It reads credentials from a .env file and starts the workflow.
     """
-    try:
-        application = BaseApplication(name=APPLICATION_NAME)
+    # Load environment variables from the .env file
+    load_dotenv()
+    
+    # Get credentials from environment variables
+    username = os.getenv("GITHUB_USERNAME")
+    pat = os.getenv("GITHUB_PAT")
+    
+    if not username or not pat:
+        logger.error("GITHUB_USERNAME and GITHUB_PAT must be set in the .env file.")
+        return
 
-        application.server.mount(
-            "/static", StaticFiles(directory=STATIC_PATH), name="static"
-        )
+    logger.info("Starting GitHub Extractor application")
 
-        @application.server.get("/", response_class=HTMLResponse)
-        async def read_root(request: Request):
-            return templates.TemplateResponse("index.html", {"request": request})
+    # Initialize application
+    app = BaseApplication(name=APPLICATION_NAME)
 
-        @application.server.post("/api/start_extraction")
-        async def start_extraction(username: str, pat: str):
-            workflow_config = {
-                "username": username,
-                "pat": pat
-            }
-            try:
-                workflow_run = await application.start_workflow(
-                    workflow_class=GitHubWorkflow,
-                    workflow_id=f"github_extraction_{username}",
-                    workflow_config=workflow_config,
-                )
-                return {"status": "started", "workflow_id": workflow_run.workflow_id}
-            except Exception as e:
-                logger.error(f"Failed to start workflow: {e}")
-                return {"status": "failed", "error": str(e)}
+    # Setup workflow and activities
+    await app.setup_workflow(
+        workflow_and_activities_classes=[(GitHubWorkflow, GitHubActivities)],
+        passthrough_modules=[
+            "requests",
+            "httpx",
+            "urllib3",
+            "warnings",
+            "os",
+            "grpc",
+            "pyatlan",
+        ],
+    )
 
-        await application.setup_workflow(
-            workflow_and_activities_classes=[(GitHubWorkflow, GitHubActivities)]
-        )
-        await application.start_worker()
+    # Start the worker to execute activities
+    await app.start_worker()
 
-        await application.setup_server(workflow_class=GitHubWorkflow)
-        await application.start_server()
+    # Define workflow arguments
+    workflow_args = {"username": username, "pat": pat}
 
-    except ApiError:
-        logger.error(f"{ApiError.SERVER_START_ERROR}", exc_info=True)
-        raise
+    # Start the workflow
+    print("Starting workflow with args:", workflow_args)
+    # workflow_id = await app.workflow_client.start_workflow(
+    #     workflow_class=GitHubWorkflow,
+    #     workflow_args=workflow_args,
+    # )
+    # logger.info(f"Workflow started with ID: {workflow_id}")
+    await app.setup_server(workflow_class = GitHubWorkflow)
+    await app.start_server()
 
 if __name__ == "__main__":
-    asyncio.run(setup_app_and_server())
+    asyncio.run(main())
