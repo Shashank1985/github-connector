@@ -11,7 +11,6 @@ from application_sdk.observability.traces_adaptor import get_traces
 from temporalio import activity
 
 from app.clients import GitHubClient
-from app.transformer import GitHubAtlasTransformer
 import os
 
 logger = get_logger(__name__)
@@ -64,41 +63,3 @@ class GitHubActivities(ActivitiesInterface):
         """
         client = GitHubClient(pat=pat)
         return await client.get_repositories_metadata(username=username)
-
-    @observability(logger=logger, metrics=metrics, traces=traces)
-    @activity.defn
-    @auto_heartbeater
-    def transform_data_activity(self, raw_data: Dict[str, Any]) -> List[Any]:
-        """
-        Transforms raw data from GitHub API into Atlan assets.
-        This activity runs synchronously as the transformation logic does not involve async I/O.
-
-        :param raw_data: A dictionary containing raw 'user_data' and 'repo_data'.
-        :return: A list of transformed Atlan assets.
-        """
-        connection_name = "GitHub API"
-        connection_qualified_name = "default/github/user_example"
-
-        transformer = GitHubAtlasTransformer(
-            connection_name=connection_name,
-            connection_qualified_name=connection_qualified_name
-        )
-
-        return transformer.transform_assets(raw_data)
-
-    @observability(logger=logger, metrics=metrics, traces=traces)
-    @activity.defn
-    @auto_heartbeater
-    async def upload_assets(self, assets: List[Any]) -> None:
-        """
-        Uploads the transformed assets to Atlan.
-
-        :param assets: A list of Atlan assets to be uploaded.
-        """
-        try:
-            client = AtlanClient()
-            response = await client.save_assets(assets=assets, replace_atlan_tags=True)
-            logger.info(f"Successfully uploaded {len(response.assets_created)} assets to Atlan.")
-        except Exception as e:
-            logger.error(f"Failed to upload assets to Atlan: {e}")
-            raise

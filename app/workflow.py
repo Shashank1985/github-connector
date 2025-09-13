@@ -12,7 +12,6 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 from app.activities import GitHubActivities
-from app.transformer import GitHubAtlasTransformer
 
 logger = get_logger(__name__)
 workflow.logger = logger
@@ -66,21 +65,6 @@ class GitHubWorkflow:
         user_metadata, repo_metadata = await asyncio.gather(user_metadata_task, repo_metadata_task)
         raw_data = {"user_data": user_metadata, "repo_data": repo_metadata}
 
-        # 3. Transform raw data into Atlan assets
-        transformed_assets = await workflow.execute_activity_method(
-            activities_instance.transform_data_activity,
-            raw_data,
-            retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(minutes=5),
-        )
-
-        # 4. Upload the transformed assets to Atlan
-        await workflow.execute_activity_method(
-            activities_instance.upload_assets,
-            transformed_assets,
-            retry_policy=retry_policy,
-            start_to_close_timeout=timedelta(minutes=10),
-        )
 
     @staticmethod
     def get_activities(activities: GitHubActivities) -> List[Callable[..., Any]]:
@@ -91,6 +75,5 @@ class GitHubWorkflow:
             activities.preflight_check,
             activities.fetch_user_metadata_activity,
             activities.fetch_repositories_metadata_activity,
-            activities.transform_data_activity,
-            activities.upload_assets,
+            
         ]
