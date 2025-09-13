@@ -21,7 +21,39 @@ A GitHub metadata extraction application built using the Atlan Application SDK, 
 1.  **Start and activate virtual environment in the project directory**
     ```bash
     uv venv
-    .venv\Scripts\Activate
+    .venv\Scripts\Activate (Windows) or source .venv/bin/activate(Linux)
     ```
 
+2.  **Download Required Components**
+    ```bash
+    uv run poe download-components
+    ```
+
+3.  **Set up .env file**
+    ```bash
+    GITHUB_USERNAME="<your-github-username>"
+    GITHUB_PAT="<your-github-pat>"
+    ```
+
+4.  **Start dependencies**
+    In Windows, this is a 2 step process
+    Run dapr in one terminal
+    ```bash
+    poe start-dapr
+    ```
+    Run temporal in another
+    ```bash
+    poe start-temporal
+    ```
+
+    In linux, you can start both with the command
+    ```bash
+    poe start-deps
+    ```
+
+5.  **Start app**
+    Open a new terminal and run 
+    ```bash
+    python main.py
+    ```
 
