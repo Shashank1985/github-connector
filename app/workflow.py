@@ -62,15 +62,17 @@ class GitHubWorkflow:
         )
 
         user_metadata, repo_metadata = await asyncio.gather(user_metadata_task, repo_metadata_task)
-        raw_data = {"user_data": user_metadata, "repo_data": repo_metadata}
+        
         
         # 3. Process the fetched data for simple quality metrics and automated tagging.
-        await workflow.execute_activity_method(
+        repo_metadata_with_tags = await workflow.execute_activity_method(
             activities_instance.extract_keywords_activity,
             repo_metadata,
             retry_policy=retry_policy,
             start_to_close_timeout=timedelta(seconds=60),
         )
+        raw_data ={"user_data": user_metadata, "repo_data": repo_metadata_with_tags},
+ 
         await workflow.execute_activity_method(
             activities_instance.fetch_data_quality_metrics_activity,
             raw_data,

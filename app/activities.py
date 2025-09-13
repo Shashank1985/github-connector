@@ -124,6 +124,7 @@ class GitHubActivities(ActivitiesInterface):
             "average_stars_per_repo": sum(repo.get("star_count", 0) for repo in repo_metadata) / len(repo_metadata) if repo_metadata else 0,
             "total_public_gists": user_metadata.get("public_gists", 0),
             "repos_with_description_percentage": (sum(1 for repo in repo_metadata if repo.get("description")) / len(repo_metadata)) * 100 if repo_metadata else 0,
+            "repos_with_auto_tags_percentage": (sum(1 for repo in repo_metadata if repo.get("auto_tags")) / len(repo_metadata)) * 100 if repo_metadata else 0,
         }
 
         output_file = "github_quality_metrics.json"
