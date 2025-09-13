@@ -12,26 +12,27 @@ from temporalio import activity
 
 from app.clients import GitHubClient
 from app.transformer import GitHubAtlasTransformer
+import os
 
 logger = get_logger(__name__)
 activity.logger = logger
 metrics = get_metrics()
 traces = get_traces()
 
-
+username = os.getenv("GITHUB_USERNAME")
+pat = os.getenv("GITHUB_PAT")
 class GitHubActivities(ActivitiesInterface):
-
+    
     @observability(logger=logger, metrics=metrics, traces=traces)
     @activity.defn
     @auto_heartbeater
     async def preflight_check(self, workflow_args: Dict[str, Any]) -> Optional[ActivityStatistics]:
         """Performs a preflight check using the provided PAT."""
         try:
-            pat = workflow_args.get("pat")
             if not pat:
                 raise ValueError("Personal Access Token (PAT) is missing.")
             client = GitHubClient(pat=pat)
-            await client.get_user_metadata(username=workflow_args["username"])
+            await client.get_user_metadata(username=username)
             logger.info("Preflight check passed successfully.")
             return None
         except Exception as e:
@@ -48,8 +49,8 @@ class GitHubActivities(ActivitiesInterface):
         :param workflow_args: The workflow arguments, including the GitHub username and PAT.
         :return: A dictionary containing the user's metadata.
         """
-        client = GitHubClient(pat=workflow_args.get("pat"))
-        return await client.get_user_metadata(username=workflow_args["username"])
+        client = GitHubClient(pat=pat)
+        return await client.get_user_metadata(username=username)
 
     @observability(logger=logger, metrics=metrics, traces=traces)
     @activity.defn
@@ -61,8 +62,8 @@ class GitHubActivities(ActivitiesInterface):
         :param workflow_args: The workflow arguments, including the GitHub username and PAT.
         :return: A list of dictionaries, each containing a repository's metadata.
         """
-        client = GitHubClient(pat=workflow_args.get("pat"))
-        return await client.get_repositories_metadata(username=workflow_args["username"])
+        client = GitHubClient(pat=pat)
+        return await client.get_repositories_metadata(username=username)
 
     @observability(logger=logger, metrics=metrics, traces=traces)
     @activity.defn
