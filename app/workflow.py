@@ -71,7 +71,7 @@ class GitHubWorkflow:
             retry_policy=retry_policy,
             start_to_close_timeout=timedelta(seconds=60),
         )
-        raw_data ={"user_data": user_metadata, "repo_data": repo_metadata_with_tags},
+        raw_data ={"user_data": user_metadata, "repo_data": repo_metadata_with_tags}
  
         await workflow.execute_activity_method(
             activities_instance.fetch_data_quality_metrics_activity,

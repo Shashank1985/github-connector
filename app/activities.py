@@ -113,9 +113,10 @@ class GitHubActivities(ActivitiesInterface):
         :param raw_data: A dictionary containing 'user_data' and 'repo_data'.
         :return: A dictionary containing the calculated data quality metrics.
         """
+        print("type of raw_data in activity:", type(raw_data))
         user_metadata = raw_data.get("user_data", {})
         repo_metadata = raw_data.get("repo_data", [])
-
+        print("REPO METADATA IN ACTIVITY:",repo_metadata)
         # Calculate metrics
         quality_metrics = {
             "total_public_repos": len(repo_metadata),
