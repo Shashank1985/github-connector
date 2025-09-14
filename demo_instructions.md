@@ -1,8 +1,9 @@
-1.  **Start and activate virtual environment in the project directory**
+1.  **Clone the repo Start and activate virtual environment in the project directory**
     ```bash
     uv venv
     .venv\Scripts\Activate (Windows) or source .venv/bin/activate(Linux)
-    uv sync
+
+    uv sync (for downloading requirements in the venv)
     ```
 
 2.  **Download Required Components**
