@@ -48,7 +48,7 @@
     curl -X POST http://localhost:8000/workflows/v1/start -H "Content-Type:application/json" -d '{"input":"test"}'
     ```
     or simply use PostMan and send a POST request with dummy data to the endpoint workflows/v1/start.
-    Upon successful completion of the workflow, you will find 4 different json files with different metadata related information of the 
+    Upon successful completion of the workflow, you will find 4 different json files with different metadata related information of the user and their public repos
 
 7.  **Stop the server**
     You can either chose to kill the terminals on which the processes are running or use
