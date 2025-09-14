@@ -1,4 +1,4 @@
-# app/activities.py
+
 from typing import Any, Dict, List, Optional
 from application_sdk.activities import ActivitiesInterface
 from application_sdk.activities.common.models import ActivityStatistics
@@ -116,7 +116,6 @@ class GitHubActivities(ActivitiesInterface):
         print("type of raw_data in activity:", type(raw_data))
         user_metadata = raw_data.get("user_data", {})
         repo_metadata = raw_data.get("repo_data", [])
-        print("REPO METADATA IN ACTIVITY:",repo_metadata)
         # Calculate metrics
         quality_metrics = {
             "total_public_repos": len(repo_metadata),
